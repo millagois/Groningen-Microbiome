@@ -1,0 +1,52 @@
+#########################
+# Dagboek Questionnaire #
+#########################
+# 12 of May of 2020
+# Milla Gois
+
+# Dagboek data is saved with the ID entry repeated per day of the week. 
+# This code will give an output where the ID entry is unique and the day of sampling is specified in the column name. 
+# This code is also filtering for participants which also answered romeIII questionnaires. 
+
+#accompanying documents: DAG3_Volw_Dagboek.dat and Rome3_with_happy_ending.txt
+
+# load ml RPlus 
+library(data.table)
+#upload the dfs and naming
+dagboek <- read.table("DAG3_Volw_Dagboek.dat", sep= "\t", header=T, fill = T)
+rome3 <- read.table("Rome3_with_happy_ending.txt", sep="\t", header=T)
+
+#match the ID names
+##first make a vector with the unique IDs present in rome3, then make a subset of dagboek using only the IDs present in rome3 
+u_rome3 <- unique(rome3$Row.names) #this is a vector
+dagboek_R <- subset(dagboek, PSEUDOIDEXT %in% u_rome3) #this is a df
+
+#then, do the opposite to check if there isn't some IDs that were in dagboek and were not in rome3.
+u_dagboek_R <- unique(dagboek_R$PSEUDOIDEXT) #this is a vector
+rome3_D <- subset(rome3, Row.names %in% u_dagboek_R)#this is df
+
+#now clean the df we are working with from now on: 
+R3 <- rome3_D[, c("Row.names", "IBS", "Subtype", "FGID")]
+DG<- dagboek_R
+
+#make the repeated ID entries, for each day of the week, columns instead of rows: 
+DG_modified <- dcast (setDT(DG), PSEUDOIDEXT ~paste0("Day",DDAYID), 
+                      value.var=c("FAECESDATE","FAECESPROB1","FAECESPROB2", "FAECESPROB3", "FAECESPROB4", "FAECESPROB5", "FAECESPROB6", 
+                                  "FAECESPROB7","FAECESPROB8", "FAECESFREQ",  "FAECESBRIS1", "FAECESBRIS2", "FAECESBRIS3",
+                                  "FAECESBRIS4", "FAECESBRIS5" ,"FAECESBRIS6", "FAECESBRIS7" ,"FAECESDR1",
+                                  "FAECESDR1A",  "FAECESDR1B" , "FAECESDR1C",  "FAECESDR1D" , "FAECESDR2A",  
+                                  "FAECESDR2B",  "FAECESDR2C",  "FAECESDR2D",  "FAECESDR3A" , "FAECESDR3B",
+                                  "FAECESDR3C",  "FAECESDR3D",  "FAECESDR4A",  "FAECESDR4B" , "FAECESDR4C",
+                                  "FAECESDR4D",  "FAECESDR5A" , "FAECESDR5B" , "FAECESDR5C",  "FAECESDR5D",
+                                  "FAECESDR6A",  "FAECESDR6B" , "FAECESDR6C" , "FAECESDR6D" , "FAECESDR7A",
+                                  "FAECESDR7B",  "FAECESDR7C" , "FAECESDR7D" , "FAECESDR8A" , "FAECESDR8B",
+                                  "FAECESDR8C",  "FAECESDR8D" , "FAECESDR9A" , "FAECESDR9B" , "FAECESDR9C",
+                                 "FAECESDR9D",  "FAECESDR10A", "FAECESDR10B", "FAECESDR10C", "FAECESDR10D",
+                                  "FAECESDR11A", "FAECESDR11B" ,"FAECESDR11C", "FAECESDR11D", "FAECESDR12A",
+                                  "FAECESDR12B", "FAECESDR12C", "FAECESDR12D", "FAECESDR13A", "FAECESDR13B",
+                                  "FAECESDR13C", "FAECESDR13D", "FAECESDR14A", "FAECESDR14B", "FAECESDR14C",
+                                  "FAECESDR14D", "FAECESDR15A", "FAECESDR15B", "FAECESDR15C", "FAECESDR15D")
+                      , sep="")
+
+                  
+ #DG_modified is the output file. 
