@@ -1,0 +1,140 @@
+library(plyr) 
+library(data.table)
+library(dplyr)
+
+#upload the files
+
+dagboek_adults <- read.table("/groups/umcg-lifelines/tmp01/projects/dag3_fecal_mgs/dag3_diaries/DAG3_Volw_Dagboek.dat", sep= "\t", header=T, fill = T)
+dagboek_8 <- read.table("/groups/umcg-lifelines/tmp01/projects/dag3_fecal_mgs/dag3_diaries/DAG3_8-12_Dagboek.dat", sep="\t", header = T, fill = T)
+dagboek_12 <- read.table("/groups/umcg-lifelines/tmp01/projects/dag3_fecal_mgs/dag3_diaries/DAG3_13-17_Dagboek.dat", sep="\t", header = T, fill =T)
+
+
+#reorganize the dagboek file so there is only one ID entry. 
+#This has to be in 2 steps so it keeps the numerical values for each question.
+dagboek_adults[is.na(dagboek_adults)] = 0
+
+tmp_dg1 <- ddply(dagboek_adults, .(PSEUDOIDEXT, DDAYID), transform, newid = paste(PSEUDOIDEXT, seq_along(DDAYID)))
+
+out_dg1<- dcast (setDT(tmp_dg1), PSEUDOIDEXT +newid ~paste0("Day",DDAYID),
+                         value.var=c("FAECESPROB1","FAECESPROB2", "FAECESPROB3", "FAECESPROB4", "FAECESPROB5", "FAECESPROB6", 
+                                     "FAECESPROB7","FAECESPROB8", "FAECESFREQ",  "FAECESBRIS1", "FAECESBRIS2", "FAECESBRIS3",
+                                     "FAECESBRIS4", "FAECESBRIS5" ,"FAECESBRIS6", "FAECESBRIS7" ,"FAECESDR1",
+                                     "FAECESDR1A",  "FAECESDR1B" , "FAECESDR1C",  "FAECESDR1D" , "FAECESDR2A",  
+                                     "FAECESDR2B",  "FAECESDR2C",  "FAECESDR2D",  "FAECESDR3A" , "FAECESDR3B",
+                                     "FAECESDR3C",  "FAECESDR3D",  "FAECESDR4A",  "FAECESDR4B" , "FAECESDR4C",
+                                     "FAECESDR4D",  "FAECESDR5A" , "FAECESDR5B" , "FAECESDR5C",  "FAECESDR5D",
+                                     "FAECESDR6A",  "FAECESDR6B" , "FAECESDR6C" , "FAECESDR6D" , "FAECESDR7A",
+                                     "FAECESDR7B",  "FAECESDR7C" , "FAECESDR7D" , "FAECESDR8A" , "FAECESDR8B",
+                                     "FAECESDR8C",  "FAECESDR8D" , "FAECESDR9A" , "FAECESDR9B" , "FAECESDR9C",
+                                     "FAECESDR9D",  "FAECESDR10A", "FAECESDR10B", "FAECESDR10C", "FAECESDR10D",
+                                     "FAECESDR11A", "FAECESDR11B" ,"FAECESDR11C", "FAECESDR11D", "FAECESDR12A",
+                                     "FAECESDR12B", "FAECESDR12C", "FAECESDR12D", "FAECESDR13A", "FAECESDR13B",
+                                     "FAECESDR13C", "FAECESDR13D", "FAECESDR14A", "FAECESDR14B", "FAECESDR14C",
+                                     "FAECESDR14D", "FAECESDR15A", "FAECESDR15B", "FAECESDR15C", "FAECESDR15D")
+                         , sep="") 
+
+
+#now take out the duplicate id row
+DG1 <- out_dg1[,-"newid"]
+#take out the duplicate rows
+DG1 <- DG1[-(1:2),]
+#turn NAs into zeros
+DG1 [is.na(DG1)] = 0
+DG1_1 <- DG1 %>% select (-contains("Day0"))
+
+#select and get the mean for the questions of interest:
+
+DG1_sel <- DG1_1 %>% select("PSEUDOIDEXT", contains("FAECESPROB"), contains("FAECESFREQ"))
+
+DG1_final <- DG1_sel %>% mutate(
+        not_well_mean = rowMeans(select(DG1_sel, contains("FAECESPROB1Day"))),
+        abdominal_pain_mean = rowMeans(select(DG1_sel, contains("FAECESPROB2Day"))), 
+        constipation_mean = rowMeans(select(DG1_sel, contains("FAECESPROB3Day"))), 
+        diarrhea_mean = rowMeans(select(DG1_sel, contains("FAECESPROB4Day"))), 
+        bloated_mean = rowMeans(select(DG1_sel, contains("FAECESPROB5Day"))),
+        flatulence_mean = rowMeans(select(DG1_sel, contains("FAECESPROB6Day"))),
+        burping_mean = rowMeans(select(DG1_sel, contains("FAECESPROB7Day"))),
+        nausea_mean = rowMeans(select(DG1_sel, contains("FAECESPROB8Day"))),
+        freq_mean = rowMeans(select(DG1_sel, contains("FAECESFREQDay"))))
+
+#Replicate code for the children and teens: 
+
+tmp_dg2 <- ddply(dagboek_12, .(PSEUDOIDEXT, ADDAYID), transform, newid = paste(PSEUDOIDEXT, seq_along(ADDAYID)))
+out_dg2<- dcast (setDT(tmp_dg2), PSEUDOIDEXT +newid ~paste0("Day",ADDAYID),
+                 value.var=c( "AFAECPROB1" , "AFAECPROB2",
+                              "AFAECPROB3" ,"AFAECPROB4",  "AFAECPROB5", "AFAECPROB6", "AFAECPROB7",
+                              "AFAECPROB8",  "AFAECFREQ",  "AFAECBRIS1", "AFAECBRIS2", "AFAECBRIS3",
+                              "AFAECBRIS4",  "AFAECBRIS5",  "AFAECBRIS6",  "AFAECBRIS7",  "AFAECDR1",
+                              "AFAECDR1A" ,  "AFAECDR1B",  "AFAECDR1C"  ,"AFAECDR1D" , "AFAECDR2A",
+                              "AFAECDR2B" , "AFAECDR2C" , "AFAECDR2D"  ,"AFAECDR3A" , "AFAECDR3B",
+                              "AFAECDR3C" ,  "AFAECDR3D",  "AFAECDR4A" , "AFAECDR4B" , "AFAECDR4C",
+                              "AFAECDR4D" , "AFAECDR5A" , "AFAECDR5B"  ,"AFAECDR5C"  ,"AFAECDR5D",
+                              "AFAECDR6A" , "AFAECDR6B" , "AFAECDR6C"  ,"AFAECDR6D"  ,"AFAECDR7A",
+                              "AFAECDR7B" , "AFAECDR7C" , "AFAECDR7D"  ,"AFAECDR8A"  ,"AFAECDR8B",
+                              "AFAECDR8C" , "AFAECDR8D" , "AFAECDR9A"  ,"AFAECDR9B"  ,"AFAECDR9C",
+                              "AFAECDR9D" , "AFAECDR10A", "AFAECDR10B" ,"AFAECDR10C" ,"AFAECDR10D",
+                              "AFAECDR11A", "AFAECDR11B", "AFAECDR11C" ,"AFAECDR11D" ,"AFAECDR12A",
+                              "AFAECDR12B", "AFAECDR12C", "AFAECDR12D" ,"AFAECDR13A" ,"AFAECDR13B",
+                              "AFAECDR13C", "AFAECDR13D", "AFAECDR14A" ,"AFAECDR14B" ,"AFAECDR14C",
+                              "AFAECDR14D", "AFAECDR15A", "AFAECDR15B" ,"AFAECDR15C" ,"AFAECDR15D")
+                 , sep="")
+
+DG2 <- out_dg2[,-"newid"]
+DG2 [is.na(DG2)] = 0
+
+DG2_sel <- DG2 %>% select("PSEUDOIDEXT", contains("AFAECPROB"), contains("AFAECFREQ"))
+
+DG2_final <- DG2_sel %>% mutate(
+        not_well_mean = rowMeans(select(DG2_sel, contains("AFAECPROB1Day"))),
+        abdominal_pain_mean = rowMeans(select(DG2_sel, contains("AFAECPROB2Day"))), 
+        constipation_mean = rowMeans(select(DG2_sel, contains("AFAECPROB3Day"))), 
+        diarrhea_mean = rowMeans(select(DG2_sel, contains("AFAECPROB4Day"))), 
+        bloated_mean = rowMeans(select(DG2_sel, contains("AFAECPROB5Day"))),
+        flatulence_mean = rowMeans(select(DG2_sel, contains("AFAECPROB6Day"))),
+        burping_mean = rowMeans(select(DG2_sel, contains("AFAECPROB7Day"))),
+        nausea_mean = rowMeans(select(DG2_sel, contains("AFAECPROB8Day"))),
+        freq_mean = rowMeans(select(DG2_sel, contains("AFAECFREQDay"))))
+
+#for children: 
+tmp_dg3 <- ddply(dagboek_8, .(PSEUDOIDEXT, CHDDAYID), transform, newid = paste(PSEUDOIDEXT, seq_along(CHDDAYID)))
+out_dg3<- dcast (setDT(tmp_dg3), PSEUDOIDEXT +newid ~paste0("Day",CHDDAYID),
+                 value.var=c( "CHFAECPROB1", "CHFAECPROB2",
+                              "CHFAECPROB3", "CHFAECPROB4", "CHFAECPROB5", "CHFAECPROB6", "CHFAECPROB7",
+                              "CHFAECPROB8", "CHFAECFREQ" , "CHFAECBRIS1", "CHFAECBRIS2", "CHFAECBRIS3",
+                              "CHFAECBRIS4", "CHFAECBRIS5", "CHFAECBRIS6", "CHFAECBRIS7", "CHFAECDR1",
+                              "CHFAECDR1A" , "CHFAECDR1B",  "CHFAECDR1C" , "CHFAECDR1D" , "CHFAECDR2A",
+                              "CHFAECDR2B" , "CHFAECDR2C",  "CHFAECDR2D",  "CHFAECDR3A" , "CHFAECDR3B",
+                              "CHFAECDR3C" , "CHFAECDR3D",  "CHFAECDR4A",  "CHFAECDR4B" , "CHFAECDR4C",
+                              "CHFAECDR4D" , "CHFAECDR5A",  "CHFAECDR5B",  "CHFAECDR5C" , "CHFAECDR5D",
+                              "CHFAECDR6A" , "CHFAECDR6B",  "CHFAECDR6C",  "CHFAECDR6D" , "CHFAECDR7A",
+                              "CHFAECDR7B" , "CHFAECDR7C",  "CHFAECDR7D",  "CHFAECDR8A" , "CHFAECDR8B",
+                              "CHFAECDR8C" , "CHFAECDR8D",  "CHFAECDR9A",  "CHFAECDR9B" , "CHFAECDR9C",
+                              "CHFAECDR9D" , "CHFAECDR10A", "CHFAECDR10B", "CHFAECDR10C", "CHFAECDR10D",
+                              "CHFAECDR11A", "CHFAECDR11B", "CHFAECDR11C", "CHFAECDR11D", "CHFAECDR12A",
+                              "CHFAECDR12B", "CHFAECDR12C", "CHFAECDR12D", "CHFAECDR13A", "CHFAECDR13B",
+                              "CHFAECDR13C", "CHFAECDR13D", "CHFAECDR14A", "CHFAECDR14B", "CHFAECDR14C",
+                              "CHFAECDR14D", "CHFAECDR15A", "CHFAECDR15B", "CHFAECDR15C", "CHFAECDR15D")
+                 , sep="")
+
+DG3 <- out_dg3[,-"newid"]
+DG3 [is.na(DG3)] = 0
+DG3_sel <- DG3 %>% select("PSEUDOIDEXT", contains("CHFAECPROB"), contains("CHFAECFREQ"))
+
+DG3_final <- DG3_sel %>% mutate(
+        not_well_mean = rowMeans(select(DG3_sel, contains("CHFAECPROB1Day"))),
+        abdominal_pain_mean = rowMeans(select(DG3_sel, contains("CHFAECPROB2Day"))), 
+        constipation_mean = rowMeans(select(DG3_sel, contains("CHFAECPROB3Day"))), 
+        diarrhea_mean = rowMeans(select(DG3_sel, contains("CHFAECPROB4Day"))), 
+        bloated_mean = rowMeans(select(DG3_sel, contains("CHFAECPROB5Day"))),
+        flatulence_mean = rowMeans(select(DG3_sel, contains("CHFAECPROB6Day"))),
+        burping_mean = rowMeans(select(DG3_sel, contains("CHFAECPROB7Day"))),
+        nausea_mean = rowMeans(select(DG3_sel, contains("CHFAECPROB8Day"))),
+        freq_mean = rowMeans(select(DG3_sel, contains("CHFAECFREQDay"))))
+
+
+#create a big df with all IDs: 
+DG1_final1 <- DG1_final[,c(1,65:73)]
+DG2_final1 <- DG2_final[,c(1,65:73)]
+DG3_final1 <- DG3_final[,c(1,65:73)]
+
+DG_total_final <- rbind(DG1_final1, DG2_final1, DG3_final1)
